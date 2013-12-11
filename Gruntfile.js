@@ -5,11 +5,11 @@ module.exports = function( grunt ) {
 
   var fs = require('fs');
   var path = require('path');
-  var modConfig = grunt.file.readJSON('lib/config-all.json');
   var browsers = grunt.file.readJSON('lib/sauce-browsers.json');
 
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
+    modConfig: grunt.file.readJSON('lib/config-all.json'),
     banner: {
       compact: '/*! <%= pkg.name %> <%= pkg.version %> (Custom Build) | <%= pkg.license %> */',
       full: '/*!\n' +
@@ -110,7 +110,8 @@ module.exports = function( grunt ) {
       files: [
         'Gruntfile.js',
         'src/*.js',
-        'feature-detects/**/*.js'
+        'feature-detects/**/*.js',
+        'tasks/*.js'
       ],
       tests: {
         options: {
@@ -224,19 +225,8 @@ module.exports = function( grunt ) {
     });
   });
 
-  // Strip define fn
-  grunt.registerMultiTask('stripdefine', 'Strip define call from dist file', function() {
-    this.filesSrc.forEach(function(filepath) {
-      // Remove `define('modernizr-init' ...)` and `define('modernizr-build' ...)`
-      var mod = grunt.file.read(filepath).replace(/define\("modernizr-(init|build)", function\(\)\{\}\);/g, '');
-
-      // Hack the prefix into place. Anything is way too big for something so small.
-      if ( modConfig && modConfig.classPrefix ) {
-        mod = mod.replace('classPrefix : \'\',', 'classPrefix : \'' + modConfig.classPrefix.replace(/"/g, '\\"') + '\',');
-      }
-      grunt.file.write(filepath, mod);
-    });
-  });
+  // Load custom tasks
+  grunt.loadTasks('tasks');
 
   grunt.registerMultiTask('generateinit', 'Generate Init file', function() {
     var requirejs = require('requirejs');
@@ -245,7 +235,7 @@ module.exports = function( grunt ) {
       baseUrl : __dirname + '/src/'
     });
     var generateInit = requirejs('generate');
-    grunt.file.write('tmp/modernizr-init.js', generateInit(modConfig));
+    grunt.file.write('tmp/modernizr-init.js', generateInit(grunt.modConfig));
   });
   // Testing tasks
   grunt.registerTask('test', ['build', 'jshint', 'qunit', 'nodeunit']);
